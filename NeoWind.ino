@@ -26,8 +26,11 @@ NeoPixel Information for initializing the strip, below
 
 #include "MSTimer.h"
 
+// the fan pin
+const int fanPin = 12;
+
 // the data pin for the NeoPixels
-int neoPixelPin = 6;
+const int neoPixelPin = 6;
 
 // How many NeoPixels we will be using, charge accordingly
 int numPixels = 24;
@@ -88,8 +91,8 @@ void setup() {
     strip.setPixelColor(i, r, g, b);
   }
    
-  pinMode(7,OUTPUT);
-  digitalWrite(7,fanNotRunning);
+  pinMode(fanPin,OUTPUT);
+  digitalWrite(fanPin,fanNotRunning);
 }
 
 void loop() {
@@ -132,7 +135,7 @@ void checkFan() {
   // turn fan on/off
    if( fanTimer.isExpired() ) {
     fanNotRunning = !fanNotRunning;
-     digitalWrite(7,fanNotRunning);   // fan running
+     digitalWrite(fanPin,fanNotRunning);   // fan running
       
       if( fanNotRunning ) {
         Serial.println("Fan OFF");
