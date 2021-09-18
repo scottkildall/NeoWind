@@ -19,9 +19,10 @@ int MSTimer::isExpired() {
 void MSTimer::start() {
    startTime = millis();
 }
+
 void MSTimer::setTimer(unsigned long _duration) {
    duration = _duration;
    start(); 
 }
 
-
+ 

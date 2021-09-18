@@ -40,12 +40,22 @@ int r = 0;
 int g = 0;
 int b = 255;
 
+int newRed = 0;
+int newGreen = 0;
+int newBlue = 255;
+
+int rDir = 0;
+int gDir = 0;
+int bDir = 0;
+
+
 // FLIPPED because of the wiring
 boolean fanNotRunning = false;
 
 // various timers
 MSTimer fanTimer;
 MSTimer lightTimer;
+MSTimer changePixelsTimer;
 
 // Fan off/on
 #define MIN_FAN_RUNNING_TIMER         (20000)
@@ -53,6 +63,9 @@ MSTimer lightTimer;
 
 #define MIN_FAN_OFF_TIMER             (10000)
 #define MAX_FAN_OFF_TIMER             (11000)
+
+#define MIN_LIGHT_TIMER               (4000)
+#define MAX_LIGHT_TIMER               (7000)
 
 void setup() {
   Serial.begin(115200);
@@ -63,15 +76,44 @@ void setup() {
 
   fanTimer.setTimer(random(MIN_FAN_RUNNING_TIMER, MAX_FAN_RUNNING_TIMER));
   fanTimer.start();
+
+  lightTimer.setTimer(random(MIN_LIGHT_TIMER,MAX_LIGHT_TIMER));
+  lightTimer.start();
   
+  changePixelsTimer.setTimer(100);
+  changePixelsTimer.start();
+
+  // set the colors for the strip
+  for( int i = 0; i < numPixels; i++ ) {
+    strip.setPixelColor(i, r, g, b);
+  }
+   
   pinMode(7,OUTPUT);
   digitalWrite(7,fanNotRunning);
 }
 
 void loop() {
-   // set the colors for the strip
-   for( int i = 0; i < numPixels; i++ )
-       strip.setPixelColor(i, r, g, b);
+  if( changePixelsTimer.isExpired()) {
+    r += rDir;
+    g += gDir;
+    b += bDir;
+
+    if( r == newRed ) {
+      rDir = 0;
+    }
+    else if( g == newRed ) {
+      gDir = 0;
+    }
+    else if( r == newRed ) {
+      bDir = 0;
+    }
+    
+    for( int i = 0; i < numPixels; i++ ) {
+      strip.setPixelColor(i, r, g, b);
+    }
+
+    changePixelsTimer.start();
+  }
    
    // show all pixels  
    strip.show();
@@ -80,19 +122,17 @@ void loop() {
    // technically we only need to execute this one time, since we aren't changing the colors but we will build on this structure
    delay(10);
 
-    checkFan();
+   checkFan();
+   checkLight(); 
 }
 
 
-// looks for an expired timer, changs the state accordingly
+// looks for an expired timer, changes the state accordingly
 void checkFan() {
   // turn fan on/off
    if( fanTimer.isExpired() ) {
-    
-        
-        
-       fanNotRunning = !fanNotRunning;
-       digitalWrite(7,fanNotRunning);   // fan running
+    fanNotRunning = !fanNotRunning;
+     digitalWrite(7,fanNotRunning);   // fan running
       
       if( fanNotRunning ) {
         Serial.println("Fan OFF");
@@ -108,4 +148,36 @@ void checkFan() {
         fanTimer.start();  
       }
    }
+}
+
+void checkLight() {
+  if( lightTimer.isExpired() ) {
+      Serial.println("light timer expired");
+    
+      // choose new color
+      r = newRed = random(0,30);
+      g = newGreen = random(0,30);
+      b = newBlue = random(120,255);
+
+      // some janky code here
+      rDir = setDir(r, newRed);
+      gDir = setDir(g, newGreen);
+      bDir = setDir(b, newBlue);
+
+      // reset timer
+      lightTimer.setTimer(random(MIN_LIGHT_TIMER,MAX_LIGHT_TIMER));
+      lightTimer.start();
+  }
+}
+
+// determine which wat the pixels will go
+int setDir(int oldDir, int newDir) {
+  if( newDir > oldDir) {
+    return 1;
+  }
+  else if( newDir < oldDir) {
+    return -1;
+  }
+
+  return 0;
 }
