@@ -26,22 +26,21 @@ NeoPixel Information for initializing the strip, below
 
 #include "MSTimer.h"
 
-// the fan pin
-const int fanPin = 12;
-
 // the data pin for the NeoPixels
-const int neoPixelPin = 6;
+const int skyStripNeoPixelPin = 6;
+const int beakerStripNeoPixelPin = 4;
 
 // How many NeoPixels we will be using, charge accordingly
 int numPixels = 24;
 
 // Instatiate the NeoPixel from the ibrary
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(numPixels, neoPixelPin, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel skyStrip = Adafruit_NeoPixel(numPixels, skyStripNeoPixelPin, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel beakerStrip= Adafruit_NeoPixel(numPixels, beakerStripNeoPixelPin, NEO_GRB + NEO_KHZ800);
 
 // Global RGB values, change to suit your needs
-int r = 0;
-int g = 0;
-int b = 255;
+int skyRed = 0;
+int skyGreen = 0;
+int skyBlue = 255;
 
 int newRed = 0;
 int newGreen = 0;
@@ -51,126 +50,133 @@ int rDir = 0;
 int gDir = 0;
 int bDir = 0;
 
+int brightDir = -1;
+int brightness = 255;
 
-// FLIPPED because of the wiring
-boolean fanNotRunning = false;
+int beakerRed = 255;
+int beakerGreen = 0;
+int beakerBlue = 0;
+
 
 // various timers
-MSTimer fanTimer;
-MSTimer lightTimer;
+MSTimer skylightTimer;
 MSTimer changePixelsTimer;
+MSTimer beakerTimer;
 
 // Fan off/on
-#define MIN_FAN_RUNNING_TIMER         (20000)
-#define MAX_FAN_RUNNING_TIMER         (21000)
+#define MIN_SKYLIGHT_TIMER               (4000)
+#define MAX_SKYLIGHT_TIMER               (7000)
 
-#define MIN_FAN_OFF_TIMER             (10000)
-#define MAX_FAN_OFF_TIMER             (11000)
-
-#define MIN_LIGHT_TIMER               (4000)
-#define MAX_LIGHT_TIMER               (7000)
 
 void setup() {
   Serial.begin(115200);
   
-  strip.begin();  // initialize the strip
-  strip.show();   // make sure it is visible
-  strip.clear();  // Initialize all pixels to 'off'
+  skyStrip.begin();  // initialize the strip
+  skyStrip.show();   // make sure it is visible
+  skyStrip.clear();  // Initialize all pixels to 'off'
 
-  fanTimer.setTimer(random(MIN_FAN_RUNNING_TIMER, MAX_FAN_RUNNING_TIMER));
-  fanTimer.start();
+  beakerStrip.begin();  // initialize the strip
+  beakerStrip.show();   // make sure it is visible
+  beakerStrip.clear();  // Initialize all pixels to 'off'
 
-  lightTimer.setTimer(random(MIN_LIGHT_TIMER,MAX_LIGHT_TIMER));
-  lightTimer.start();
+  skylightTimer.setTimer(random(MIN_SKYLIGHT_TIMER,MAX_SKYLIGHT_TIMER));
+  skylightTimer.start();
   
   changePixelsTimer.setTimer(100);
   changePixelsTimer.start();
 
+  beakerTimer.setTimer(100);
+  beakerTimer.start();
+
   // set the colors for the strip
   for( int i = 0; i < numPixels; i++ ) {
-    strip.setPixelColor(i, r, g, b);
+    skyStrip.setPixelColor(i, 0,0,255);
+    beakerStrip.setPixelColor(i, beakerRed,beakerGreen,beakerBlue);
   }
-   
-  pinMode(fanPin,OUTPUT);
-  digitalWrite(fanPin,fanNotRunning);
 }
 
 void loop() {
   if( changePixelsTimer.isExpired()) {
-    r += rDir;
-    g += gDir;
-    b += bDir;
+    skyRed += rDir;
+    skyGreen += gDir;
+    skyBlue += bDir;
 
-    if( r == newRed ) {
+    if( skyRed == newRed ) {
       rDir = 0;
     }
-    else if( g == newRed ) {
+    else if( skyGreen == newGreen ) {
       gDir = 0;
     }
-    else if( r == newRed ) {
+    else if( skyBlue == newBlue ) {
       bDir = 0;
     }
     
     for( int i = 0; i < numPixels; i++ ) {
-      strip.setPixelColor(i, r, g, b);
+      skyStrip.setPixelColor(i, skyRed, skyGreen, skyBlue);
+      beakerStrip.setPixelColor(i, beakerRed, beakerGreen, beakerBlue);
     }
 
     changePixelsTimer.start();
   }
    
    // show all pixels  
-   strip.show();
+   skyStrip.show();
+   beakerStrip.show();
    
    // wait for a short amount of time -- sometimes a short delay of 5ms will help
    // technically we only need to execute this one time, since we aren't changing the colors but we will build on this structure
    delay(10);
 
-   checkFan();
-   checkLight(); 
+   checkSkylight(); 
+   checkBeakerStrip();
 }
 
 
-// looks for an expired timer, changes the state accordingly
-void checkFan() {
-  // turn fan on/off
-   if( fanTimer.isExpired() ) {
-    fanNotRunning = !fanNotRunning;
-     digitalWrite(fanPin,fanNotRunning);   // fan running
-      
-      if( fanNotRunning ) {
-        Serial.println("Fan OFF");
-        // fan now off, set timer
-        fanTimer.setTimer(random(MIN_FAN_OFF_TIMER, MAX_FAN_OFF_TIMER));
-        fanTimer.start();   
-      }
-      else {
-        Serial.println("Fan ON");
-        
-        // now turn back on
-        fanTimer.setTimer(random(MIN_FAN_RUNNING_TIMER, MAX_FAN_RUNNING_TIMER));
-        fanTimer.start();  
-      }
-   }
-}
-
-void checkLight() {
-  if( lightTimer.isExpired() ) {
+void checkSkylight() {
+  if( skylightTimer.isExpired() ) {
       Serial.println("light timer expired");
     
       // choose new color
-      r = newRed = random(0,30);
-      g = newGreen = random(0,30);
-      b = newBlue = random(120,255);
+      skyRed = newRed = random(0,30);
+      skyGreen = newGreen = random(0,30);
+      skyBlue = newBlue = random(120,255);
 
       // some janky code here
-      rDir = setDir(r, newRed);
-      gDir = setDir(g, newGreen);
-      bDir = setDir(b, newBlue);
+      rDir = setDir(skyRed, newRed);
+      gDir = setDir(skyGreen, newGreen);
+      bDir = setDir(skyBlue, newBlue);
 
       // reset timer
-      lightTimer.setTimer(random(MIN_LIGHT_TIMER,MAX_LIGHT_TIMER));
-      lightTimer.start();
+      skylightTimer.setTimer(random(MIN_SKYLIGHT_TIMER,MAX_SKYLIGHT_TIMER));
+      skylightTimer.start();
   }
+}
+
+void checkBeakerStrip() {
+    if( beakerTimer.isExpired() ) {
+      brightness += brightDir;
+      if( brightness < 0 ) {
+        brightness = 0;
+        brightDir = -brightDir;
+        randomizeBeakerStripColors();
+      }
+      else if( brightness > 255 ) {
+        brightness = 255;
+        brightDir = -brightDir;
+      }
+
+      Serial.println(brightness);
+      beakerStrip.setBrightness(brightness);
+      beakerStrip.show();
+      
+      beakerTimer.start();
+   }
+}
+
+void randomizeBeakerStripColors() {
+  beakerRed = random(100,255);
+  beakerGreen = random(0,25);
+  beakerBlue = random(0,100);
 }
 
 // determine which wat the pixels will go
